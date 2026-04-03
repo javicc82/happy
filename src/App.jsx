@@ -289,6 +289,54 @@ export default function App() {
     }
   };
 
+  // --- Renderizado de Pestañas (Editables en móvil) ---
+  const KidNameTab = ({ kidId }) => {
+    const kid = kidsState[kidId];
+    const [isEditingTab, setIsEditingTab] = useState(false);
+    const [editTabName, setEditTabName] = useState(kid.name);
+    
+    // Sincronizar el nombre si cambió desde otro lado o nube
+    useEffect(() => setEditTabName(kid.name), [kid.name]);
+
+    const saveTabName = (e) => {
+      if (e) e.stopPropagation();
+      setKidsState(p => ({...p, [kidId]: {...p[kidId], name: editTabName}}));
+      setIsEditingTab(false);
+    };
+
+    return (
+      <button 
+        className={`tab-btn ${activeTab === kidId ? (kidId==='pikachu'?'active-pika':'active-spidey') : ''}`} 
+        onClick={() => !isEditingTab && setActiveTab(kidId)}
+      >
+        <img src={kid.avatar} alt={kid.name} />
+        {isEditingTab ? (
+          <input 
+            value={editTabName} 
+            onChange={e => setEditTabName(e.target.value)} 
+            onBlur={saveTabName} 
+            onKeyDown={e => e.key === 'Enter' && saveTabName(e)} 
+            onClick={e => e.stopPropagation()}
+            className="inline-edit-input" 
+            style={{ width: '90px', padding: '2px 5px', fontSize: '1rem' }} 
+            autoFocus 
+          />
+        ) : (
+          <span style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+            <span>{kid.name}</span>
+            {activeTab === kidId && (
+              <span 
+                onClick={(e) => { e.stopPropagation(); setIsEditingTab(true); }} 
+                className="tab-edit-btn"
+                style={{ fontSize: '0.8rem', opacity: 0.7, padding: '5px' }}
+              >✏️</span>
+            )}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   // --- Componentes UI Locales ---
   const KidProfile = ({ kidId }) => {
     const kid = kidsState[kidId];
@@ -301,6 +349,8 @@ export default function App() {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(kid.name);
 
+    useEffect(() => setEditName(kid.name), [kid.name]);
+
     const saveName = () => { setKidsState(p => ({...p, [kidId]: {...p[kidId], name: editName}})); setIsEditing(false); };
 
     return (
@@ -310,13 +360,17 @@ export default function App() {
             <img src={kid.avatar} alt={kid.name} className="kid-avatar" />
             <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', overflow:'hidden'}}>
               {isEditing ? (
-                <input value={editName} onChange={e => setEditName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} className="inline-edit-input" style={{width: '100%', padding: '5px'}} autoFocus />
+                <input value={editName} onChange={e => setEditName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} className="inline-edit-input card-edit-btn" style={{width: '100%', padding: '5px'}} autoFocus />
               ) : (
-                <div className="kid-name" onClick={() => setIsEditing(true)} style={{display:'flex', alignItems:'center', gap:'6px', cursor:'pointer', width:'100%'}}>
+                <div className="kid-name card-edit-btn" onClick={() => setIsEditing(true)} style={{display:'flex', alignItems:'center', gap:'6px', cursor:'pointer', width:'100%'}}>
                   <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{kid.name}</span>
                   <span style={{fontSize:'1.2rem', opacity:0.6, flexShrink:0}}>✏️</span>
                 </div>
               )}
+              {/* Fallback visual puro del nombre en móvil (no editable) */}
+              <div className="kid-name mobile-only-name" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                {kid.name}
+              </div>
             </div>
           </div>
           <div className="coin-badge" style={{flexShrink:0}}>
@@ -409,12 +463,8 @@ export default function App() {
           </div>
 
           <div className="mobile-tabs">
-            <button className={`tab-btn ${activeTab === 'pikachu' ? 'active-pika' : ''}`} onClick={() => setActiveTab('pikachu')}>
-              <img src={kidsState.pikachu.avatar} alt="Pikachu" /><span>{kidsState.pikachu.name}</span>
-            </button>
-            <button className={`tab-btn ${activeTab === 'spiderman' ? 'active-spidey' : ''}`} onClick={() => setActiveTab('spiderman')}>
-              <img src={kidsState.spiderman.avatar} alt="Spiderman" /><span>{kidsState.spiderman.name}</span>
-            </button>
+            <KidNameTab kidId="pikachu" />
+            <KidNameTab kidId="spiderman" />
           </div>
 
           <div className="kids-grid" data-active-tab={activeTab}>
