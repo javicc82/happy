@@ -1,20 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { Apple, Clock, School, Book, Check, Settings, X, Lock, Trash2, Plus, Home, ShoppingCart, Star } from 'lucide-react';
+import { Apple, Check, Settings, X, Lock, Trash2, Plus, ShoppingCart, Star } from 'lucide-react';
 import './index.css';
 
 // Componentes y Configuración Base
 const BASE_TASKS = [
-  { id: 'fruit', label: 'Comer fruta', icon: Apple, type: 'multiple', options: ['🍌','🍎','🍈','🍉','🍇','🍑','🍐','🍊','🥝','🍓','🍒'] },
-  { id: 'wakeup', label: 'Levantarse a su hora', icon: Clock, type: 'boolean' },
-  { id: 'school', label: 'Llegar a tiempo al cole', icon: School, type: 'boolean' },
-  { id: 'read', label: 'Leer', icon: Book, type: 'boolean' }
+  { id: 'fruit',   label: 'Comer fruta',           type: 'multiple', icon: Apple, options: ['🍌','🍎','🍈','🍉','🍇','🍑','🍐','🍊','🥝','🍓','🍒'] },
+  { id: 'teeth',   label: 'Lavarse los dientes',    type: 'boolean', icon: null },
+  { id: 'hands',   label: 'Lavarse las manos',      type: 'boolean', icon: null },
+  { id: 'toys',    label: 'Recoger los juguetes',   type: 'boolean', icon: null },
+  { id: 'eat',     label: 'Comer lo que toque',     type: 'boolean', icon: null },
+  { id: 'dress',   label: 'Vestirse sin ayuda',     type: 'boolean', icon: null },
 ];
 
 const PROGRESS_FACES = ['😴', '🙂', '😊', '😄', '🤩'];
 
 const INITIAL_APP_SETTINGS = {
-  enabledTasks: ['fruit', 'wakeup', 'school', 'read'],
+  enabledTasks: ['fruit', 'teeth', 'hands', 'toys', 'eat', 'dress'],
   fruitGoal: 2,
   customTasks: [],
   lastResetDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
@@ -32,23 +34,23 @@ const INITIAL_STATE = {
     name: 'Pikachu',
     theme: 'pikachu',
     avatar: '/avatar_pikachu.png',
-    tasks: { fruit: [], wakeup: false, school: false, read: false },
+    tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
     points: 0
   },
   spiderman: {
     name: 'Spiderman',
     theme: 'spiderman',
     avatar: '/avatar_spiderman.png',
-    tasks: { fruit: [], wakeup: false, school: false, read: false },
+    tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
     points: 0
   }
 };
 
 export default function App() {
   const [kidsState, setKidsState] = useState(() => {
-    const saved = localStorage.getItem('happyApp_state_v5');
+    const saved = localStorage.getItem('happyApp_state_v6');
     if (saved) return JSON.parse(saved);
-    const old = localStorage.getItem('happyApp_state_v4');
+    const old = localStorage.getItem('happyApp_state_v5');
     if (old) {
       const parsed = JSON.parse(old);
       if(parsed.pikachu) parsed.pikachu.points = parsed.pikachu.points ?? parsed.pikachu.coins ?? 0;
@@ -59,7 +61,7 @@ export default function App() {
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('happyApp_settings_v5');
+    const saved = localStorage.getItem('happyApp_settings_v6');
     if (saved) {
       const parsed = JSON.parse(saved);
       // Migración: si existe 'icecream', lo cambiamos por el nuevo 'boardgame'
@@ -85,18 +87,40 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [fruitSelector, setFruitSelector] = useState({ show: false, kidId: null });
-  const [activeShopKid, setActiveShopKid] = useState(null); // kidId or null
+  const [activeShopKid, setActiveShopKid] = useState(null);
   const [purchaseModal, setPurchaseModal] = useState({ show: false, reward: null });
+  const [toasts, setToasts] = useState([]);
+  const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
 
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskEmoji, setNewTaskEmoji] = useState('⭐');
 
+  // --- Toast System ---
+  const showToast = (message, type = 'info', emoji = '') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type, emoji }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3200);
+  };
+
+  const showConfirm = (message, onConfirm) => {
+    setConfirmModal({ show: true, message, onConfirm });
+  };
+
+  const handleConfirmYes = () => {
+    confirmModal.onConfirm?.();
+    setConfirmModal({ show: false, message: '', onConfirm: null });
+  };
+
+  const handleConfirmNo = () => {
+    setConfirmModal({ show: false, message: '', onConfirm: null });
+  };
+
   useEffect(() => {
-    localStorage.setItem('happyApp_state_v5', JSON.stringify(kidsState));
+    localStorage.setItem('happyApp_state_v6', JSON.stringify(kidsState));
   }, [kidsState]);
 
   useEffect(() => {
-    localStorage.setItem('happyApp_settings_v5', JSON.stringify(settings));
+    localStorage.setItem('happyApp_settings_v6', JSON.stringify(settings));
   }, [settings]);
   
   // Bloquear scroll del body al abrir modales
@@ -296,7 +320,7 @@ export default function App() {
 
   // --- Manejadores Economía ---
   const handleCloseDay = () => {
-    if (confirm('¿Quieres resetear todos los retos manualmente ahora? (Útil si te equivocaste de día)')) {
+    showConfirm('¿Resetear todos los retos manualmente ahora?', () => {
       setKidsState(prev => {
         const newState = {...prev};
         ['pikachu', 'spiderman'].forEach(kidId => {
@@ -306,8 +330,8 @@ export default function App() {
         return newState;
       });
       triggerConfetti(['#FFD700', '#FCD34D']);
-      alert('¡Día reseteado manualmente! ☀️');
-    }
+      showToast('¡Retos reiniciados! Listos para mañana.', 'success', '☀️');
+    });
   };
 
   const handlePurchase = (reward) => {
@@ -318,9 +342,9 @@ export default function App() {
         [kidId]: { ...prev[kidId], points: prev[kidId].points - reward.cost }
       }));
       triggerConfetti(['#22c55e', '#ffffff']);
-      setTimeout(() => alert(`¡${kidsState[kidId].name} ha conseguido ${reward.label}! 🎉`), 100);
+      showToast(`¡${kidsState[kidId].name} ha conseguido ${reward.label}!`, 'success', reward.emoji);
     } else {
-      alert(`Ups, a ${kidsState[kidId].name} le faltan ${reward.cost - kidsState[kidId].points} puntos.`);
+      showToast(`Faltan ${reward.cost - kidsState[kidId].points} ⭐ para ${reward.label}`, 'error', '😕');
     }
   };
 
@@ -329,7 +353,8 @@ export default function App() {
     if (pinInput === '1234') {
       setShowPinModal(false); setPinInput(''); setShowSettings(true);
     } else {
-      alert('PIN incorrecto'); setPinInput('');
+      showToast('PIN incorrecto. Inténtalo de nuevo.', 'error', '🔒');
+      setPinInput('');
     }
   };
 
@@ -344,24 +369,25 @@ export default function App() {
   };
 
   const createCustomTask = () => {
-    if (!newTaskName.trim() || !newTaskEmoji.trim()) return;
+    if (!newTaskName.trim()) return;
     const newId = `custom_${Date.now()}`;
     setSettings(prev => ({
       ...prev,
-      customTasks: [...prev.customTasks, { id: newId, label: newTaskName.trim(), emoji: newTaskEmoji.trim(), type: 'boolean', custom: true }],
+      customTasks: [...prev.customTasks, { id: newId, label: newTaskName.trim(), emoji: '', type: 'boolean', custom: true }],
       enabledTasks: [...prev.enabledTasks, newId]
     }));
-    setNewTaskName(''); setNewTaskEmoji('⭐');
+    setNewTaskName('');
   };
 
   const deleteCustomTask = (taskId) => {
-    if (confirm("¿Estás seguro de borrar este reto permanentemente?")) {
+    showConfirm('¿Borrar este reto permanentemente?', () => {
       setSettings(prev => ({
         ...prev,
         customTasks: prev.customTasks.filter(t => t.id !== taskId),
         enabledTasks: prev.enabledTasks.filter(id => id !== taskId)
       }));
-    }
+      showToast('Reto eliminado.', 'info', '🗑️');
+    });
   };
 
   // --- Renderizado de Pestañas (Editables en móvil) ---
@@ -448,19 +474,21 @@ export default function App() {
               </div>
             </div>
           </div>
-          <div className="coin-badge" style={{flexShrink:0}}>
-            <Star size={18} color="#FFD700" fill="#FFD700" />
-            <span>{kid.points}</span>
-          </div>
+          <button
+            className="coin-badge coin-badge-tappable"
+            onClick={() => setActiveShopKid(kidId)}
+            title="Canjear puntos"
+            style={{flexShrink:0}}
+          >
+            <Star size={16} color="#FFD700" fill="#FFD700" />
+            <span className="coin-pts">{kid.points}</span>
+            <span className="coin-hint">Canjear</span>
+          </button>
         </div>
 
-        <button className="base-btn shop-profile-btn" onClick={() => setActiveShopKid(kidId)} style={{width:'100%', margin: '15px 0', background: 'rgba(255,215,0,0.1)', color: '#FFD700', border: '1px solid rgba(255,215,0,0.3)', gap: '10px'}}>
-          <ShoppingCart size={18} /> Canjear mis Puntos
-        </button>
-
         <div className="face-container">
-          <div className="face-emoji">{currentFace}</div>
-          <div className="level-text">{percent === 1 ? '¡SÚPER FELIZ!' : `Nivel ${faceIndex}/4`}</div>
+          <span className="face-emoji">{currentFace}</span>
+          <span className="level-text">{percent === 1 ? '¡SÚPER FELIZ!' : `Nivel ${faceIndex}/4`}</span>
         </div>
 
         <div className="tasks-list">
@@ -471,12 +499,12 @@ export default function App() {
               return (
                 <div key={task.id} className="task-wrapper">
                   <button className={`task-button ${isComp ? 'completed' : ''}`} onClick={() => handleTaskClick(kidId, task.id)}>
-                    <div className="task-icon-container">{isComp ? <Check size={20} /> : <Apple size={20} />}</div>
-                    <span style={{flex: 1}}>{task.label} ({fruits.length}/{settings.fruitGoal})</span>
-                    <div style={{fontSize: '1.2rem'}}>{fruits.join('')}</div>
+                    <span className="task-check">{isComp ? '✓' : '○'}</span>
+                    <span className="task-label">{task.label} <small style={{opacity:0.6}}>({fruits.length}/{settings.fruitGoal})</small></span>
+                    {fruits.length > 0 && <span className="task-fruits">{fruits.join('')}</span>}
                   </button>
                   {fruits.length > 0 && (
-                    <button onClick={() => setKidsState(p => ({...p, [kidId]: {...p[kidId], tasks: {...p[kidId].tasks, fruit: []}}}))} style={{background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', marginTop:'4px', fontSize:'0.8rem'}}>🔄 Reiniciar Fruta</button>
+                    <button onClick={() => setKidsState(p => ({...p, [kidId]: {...p[kidId], tasks: {...p[kidId].tasks, fruit: []}}}))} style={{background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', marginTop:'3px', fontSize:'0.75rem', paddingLeft:'8px'}}>↺ Reiniciar fruta</button>
                   )}
                 </div>
               );
@@ -484,8 +512,8 @@ export default function App() {
             const isComp = kid.tasks[task.id];
             return (
               <button key={task.id} className={`task-button ${isComp ? 'completed' : ''}`} onClick={() => handleTaskClick(kidId, task.id)}>
-                <div className="task-icon-container">{isComp ? <Check size={20} /> : (task.custom ? <span style={{fontSize:'1.2rem'}}>{task.emoji}</span> : <task.icon size={20} /> )}</div>
-                <span>{task.label}</span>
+                <span className="task-check">{isComp ? '✓' : '○'}</span>
+                <span className="task-label">{task.custom ? `${task.emoji} ` : ''}{task.label}</span>
               </button>
             );
           })}
@@ -578,11 +606,23 @@ export default function App() {
             <h2 style={{borderBottom:'1px solid rgba(255,255,255,0.1)', paddingBottom:'15px', marginBottom:'20px'}}>⚙️ Avanzado</h2>
             
             <div className="settings-section" style={{background:'rgba(255,255,255,0.02)', padding:'15px', borderRadius:'12px', border:'1px dashed rgba(255,255,255,0.2)'}}>
-              <h3>➕ Añadir Nuevo Reto</h3>
-              <div style={{display:'flex', gap:'10px', alignItems:'center', marginTop:'10px'}}>
-                <input className="inline-edit-input" style={{flex: 1, fontSize:'1rem', padding:'10px', height:'40px'}} placeholder="Ej: Deberes" value={newTaskName} onChange={e=>setNewTaskName(e.target.value)}/>
-                <input className="inline-edit-input" style={{width: '50px', fontSize:'1.2rem', padding:'10px', height:'40px', textAlign:'center'}} placeholder="📚" value={newTaskEmoji} onChange={e=>setNewTaskEmoji(e.target.value)}/>
-                <button className="base-btn" style={{padding:'10px'}} onClick={createCustomTask}><Plus size={20}/></button>
+              <h3>Añadir Nuevo Reto</h3>
+              <div style={{display:'flex', gap:'8px', alignItems:'stretch', marginTop:'10px', width:'100%'}}>
+                <input
+                  className="inline-edit-input"
+                  style={{flex:1, minWidth:0, fontSize:'1rem', padding:'10px', height:'42px', boxSizing:'border-box'}}
+                  placeholder="Ej: Deberes"
+                  value={newTaskName}
+                  onChange={e=>setNewTaskName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && createCustomTask()}
+                />
+                <button
+                  className="base-btn"
+                  style={{padding:'0 14px', height:'42px', flexShrink:0, boxSizing:'border-box'}}
+                  onClick={createCustomTask}
+                >
+                  <Plus size={18}/>
+                </button>
               </div>
             </div>
 
@@ -608,6 +648,29 @@ export default function App() {
             </div>
 
             <button className="base-btn" onClick={() => setShowSettings(false)} style={{width:'100%', marginTop:'30px'}}>Cerrar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification System */}
+      <div className="toast-container">
+        {toasts.map(toast => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            {toast.emoji && <span className="toast-emoji">{toast.emoji}</span>}
+            <span className="toast-message">{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Custom Confirm Modal */}
+      {confirmModal.show && (
+        <div className="modal-overlay" onClick={handleConfirmNo}>
+          <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '340px', textAlign: 'center'}}>
+            <p className="confirm-message">{confirmModal.message}</p>
+            <div className="confirm-actions">
+              <button className="confirm-btn confirm-cancel" onClick={handleConfirmNo}>Cancelar</button>
+              <button className="confirm-btn confirm-ok" onClick={handleConfirmYes}>Confirmar</button>
+            </div>
           </div>
         </div>
       )}
