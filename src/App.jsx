@@ -22,7 +22,7 @@ const INITIAL_APP_SETTINGS = {
     { id: 'tv_30m', label: '30 min de Tele', emoji: '📺', cost: 8 },
     { id: 'park', label: 'Salir al parque', emoji: '🛝', cost: 5 },
     { id: 'soccer', label: 'Fútbol extra', emoji: '⚽', cost: 10 },
-    { id: 'icecream', label: 'Helado Especial', emoji: '🍦', cost: 25 }
+    { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 20 }
   ]
 };
 
@@ -59,7 +59,16 @@ export default function App() {
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('happyApp_settings_v5');
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Migración: si existe 'icecream', lo cambiamos por el nuevo 'boardgame'
+      if (parsed.rewards && parsed.rewards.some(r => r.id === 'icecream')) {
+        parsed.rewards = parsed.rewards.map(r => 
+          r.id === 'icecream' ? { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 20 } : r
+        );
+      }
+      return parsed;
+    }
     const old = localStorage.getItem('happyApp_settings_v4');
     if (old) {
       const parsed = JSON.parse(old);
@@ -70,12 +79,12 @@ export default function App() {
   });
 
   // UI Modals & Navigation
-  const [currentView, setCurrentView] = useState('tracker'); // 'tracker' | 'shop'
   const [activeTab, setActiveTab] = useState('pikachu');
   const [showPinModal, setShowPinModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [fruitSelector, setFruitSelector] = useState({ show: false, kidId: null });
+  const [activeShopKid, setActiveShopKid] = useState(null); // kidId or null
   const [purchaseModal, setPurchaseModal] = useState({ show: false, reward: null });
 
   const [newTaskName, setNewTaskName] = useState('');
@@ -194,9 +203,20 @@ export default function App() {
   // --- Manejadores Rutina ---
   const handleTaskClick = (kidId, taskId) => {
     if (taskId === 'fruit') return setFruitSelector({ show: true, kidId });
-    setKidsState(prev => ({
-      ...prev, [kidId]: { ...prev[kidId], tasks: { ...prev[kidId].tasks, [taskId]: !prev[kidId].tasks[taskId] } }
-    }));
+    
+    setKidsState(prev => {
+      const isChecking = !prev[kidId].tasks[taskId];
+      const pointChange = isChecking ? 1 : -1;
+      
+      return {
+        ...prev, 
+        [kidId]: { 
+          ...prev[kidId], 
+          points: Math.max(0, (prev[kidId].points || 0) + pointChange),
+          tasks: { ...prev[kidId].tasks, [taskId]: isChecking } 
+        }
+      };
+    });
   };
 
   const handleFruitSelect = (fruitEmoji) => {
@@ -204,23 +224,32 @@ export default function App() {
     setKidsState(prev => {
       const currentFruits = prev[kidId].tasks.fruit || [];
       if (currentFruits.includes(fruitEmoji)) return prev; 
-      return { ...prev, [kidId]: { ...prev[kidId], tasks: { ...prev[kidId].tasks, fruit: [...currentFruits, fruitEmoji] } } };
+      
+      const newFruits = [...currentFruits, fruitEmoji];
+      // Solo sumamos punto si aún no hemos superado ya el objetivo diario
+      const earnedPoint = newFruits.length <= settings.fruitGoal;
+      
+      return { 
+        ...prev, 
+        [kidId]: { 
+          ...prev[kidId], 
+          points: earnedPoint ? (prev[kidId].points || 0) + 1 : prev[kidId].points,
+          tasks: { ...prev[kidId].tasks, fruit: newFruits } 
+        } 
+      };
     });
     setFruitSelector({ show: false, kidId: null });
   };
 
   // --- Manejadores Economía ---
   const handleCloseDay = () => {
-    if (confirm('¿Cerrar el día y dar los Puntos Estrella? Las tareas diarias volverán a empezar mañana.')) {
+    if (confirm('¿Cerrar el día y preparar los retos de mañana? Tus Puntos Estrella se mantendrán.')) {
       setKidsState(prev => {
         const newState = {...prev};
         
         ['pikachu', 'spiderman'].forEach(kidId => {
-          const stats = getKidProgressStats(kidId);
-          const earned = stats.score; 
           newState[kidId] = {
             ...newState[kidId],
-            points: (newState[kidId].points || 0) + earned,
             tasks: { fruit: [] }
           };
           COMBINED_TASKS.forEach(t => {
@@ -230,18 +259,17 @@ export default function App() {
         return newState;
       });
       triggerConfetti(['#FFD700', '#FCD34D', '#FFFBEB']);
-      alert('¡Puntos Estrella conseguidos! ⭐️');
+      alert('¡Día cerrado! Preparando todo para la siguiente aventura. ☀️');
     }
   };
 
-  const handlePurchase = (kidId) => {
-    const reward = purchaseModal.reward;
+  const handlePurchase = (reward) => {
+    const kidId = activeShopKid;
     if (kidsState[kidId].points >= reward.cost) {
       setKidsState(prev => ({
         ...prev,
         [kidId]: { ...prev[kidId], points: prev[kidId].points - reward.cost }
       }));
-      setPurchaseModal({ show: false, reward: null });
       triggerConfetti(['#22c55e', '#ffffff']);
       setTimeout(() => alert(`¡${kidsState[kidId].name} ha conseguido ${reward.label}! 🎉`), 100);
     } else {
@@ -379,6 +407,10 @@ export default function App() {
           </div>
         </div>
 
+        <button className="base-btn shop-profile-btn" onClick={() => setActiveShopKid(kidId)} style={{width:'100%', margin: '15px 0', background: 'rgba(255,215,0,0.1)', color: '#FFD700', border: '1px solid rgba(255,215,0,0.3)', gap: '10px'}}>
+          <ShoppingCart size={18} /> Canjear mis Puntos
+        </button>
+
         <div className="face-container">
           <div className="face-emoji">{currentFace}</div>
           <div className="level-text">{percent === 1 ? '¡SÚPER FELIZ!' : `Nivel ${faceIndex}/4`}</div>
@@ -415,96 +447,50 @@ export default function App() {
     );
   };
 
-  const ShopView = () => (
-    <div className="shop-container">
-      <div className="team-header" style={{marginBottom: '20px'}}>
-        <h1>Premios Mágicos 🎁</h1>
-        <p>¡Usa tus Puntos Súper aquí!</p>
-        <div style={{display:'flex', justifyContent:'center', flexWrap: 'wrap', gap:'20px', marginTop:'15px'}}>
-          <div className="coin-badge-big pikachu"><img src={kidsState.pikachu.avatar} alt="pika" className="mini-ava" /> <span>{kidsState.pikachu.points} ⭐</span></div>
-          <div className="coin-badge-big spiderman"><img src={kidsState.spiderman.avatar} alt="spidey" className="mini-ava" /> <span>{kidsState.spiderman.points} ⭐</span></div>
-        </div>
-      </div>
-      
-      <div className="rewards-grid">
-        {settings.rewards.map(reward => (
-          <div key={reward.id} className="reward-card" onClick={() => setPurchaseModal({ show: true, reward })}>
-            <div className="reward-emoji">{reward.emoji}</div>
-            <div className="reward-label">{reward.label}</div>
-            <div className="reward-cost">{reward.cost} ⭐</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="app-container">
-      {/* Navbar Superior */}
-      <div className="top-nav">
-        <div style={{display:'flex', gap:'10px'}}>
-          <button className={`nav-btn ${currentView==='tracker'?'active':''}`} onClick={()=>setCurrentView('tracker')}><Home size={20}/> Retos</button>
-          <button className={`nav-btn ${currentView==='shop'?'active':''}`} onClick={()=>setCurrentView('shop')}><Star size={20}/> Premios</button>
-        </div>
-        <button className="settings-btn-inline" onClick={() => setShowPinModal(true)}><Settings size={20} /></button>
+    <div className="app-container" style={{paddingTop: 0}}>
+      {/* Cabecera Minimalista: Tabs Sticky con Ajustes */}
+      <div className="mobile-tabs sticky-header">
+        <KidNameTab kidId="pikachu" />
+        <KidNameTab kidId="spiderman" />
+        <button className="settings-btn-glass mini" onClick={() => setShowPinModal(true)} style={{marginLeft: 'auto', width: '40px', height: '40px'}}>
+          <Settings size={18} />
+        </button>
       </div>
 
-      {currentView === 'tracker' ? (
-        <>
-          <div className="team-header">
-            <h1>Happy Tracker</h1>
-            <p>¡Trabajad en equipo para lograr el combo dorado!</p>
-            <div className="energy-bar-bg">
-              <div className={`energy-bar-fill ${teamPercentage === 100 ? 'full' : ''}`} style={{ width: `${teamPercentage}%` }}></div>
+      <div className="kids-grid" data-active-tab={activeTab}>
+        <KidProfile kidId="pikachu" />
+        <KidProfile kidId="spiderman" />
+      </div>
+
+      <div style={{maxWidth:'600px', margin:'40px auto 100px', textAlign:'center'}}>
+        <button className="close-day-btn" onClick={handleCloseDay}>Cerrar el Día 🛌</button>
+      </div>
+
+      {/* Tienda Modal Independiente */}
+      {activeShopKid && (
+        <div className="modal-overlay scrollable-modal" onClick={() => setActiveShopKid(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px'}}>
+            <button className="modal-close" onClick={() => setActiveShopKid(null)}><X size={24} /></button>
+            <div className="team-header" style={{marginBottom: '30px', marginTop: '20px'}}>
+              <h1>Premios de {kidsState[activeShopKid].name} 🎁</h1>
+              <div className={`coin-badge-big ${activeShopKid}`} style={{marginTop: '15px'}}><Star size={24} fill="#FFD700" color="#FFD700" /> <span>{kidsState[activeShopKid].points} ⭐</span></div>
             </div>
-            <div style={{ marginTop: '8px', fontSize: '14px', color: 'var(--text-muted)' }}>
-              Energía Súper Equipo: {totalScore}/{totalPossible}
+            
+            <div className="rewards-grid">
+              {settings.rewards.map(reward => (
+                <div key={reward.id} className="reward-card" onClick={() => handlePurchase(reward)}>
+                  <div className="reward-emoji">{reward.emoji}</div>
+                  <div className="reward-label">{reward.label}</div>
+                  <div className="reward-cost">{reward.cost} ⭐</div>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="mobile-tabs">
-            <KidNameTab kidId="pikachu" />
-            <KidNameTab kidId="spiderman" />
-          </div>
-
-          <div className="kids-grid" data-active-tab={activeTab}>
-            <KidProfile kidId="pikachu" />
-            <KidProfile kidId="spiderman" />
-          </div>
-
-          <div style={{ textAlign: 'center', marginTop: '30px' }}>
-            <button className="close-day-btn" onClick={handleCloseDay}>
-              ⭐️ Cerrar Día y Dar Puntos
-            </button>
-          </div>
-        </>
-      ) : (
-        <ShopView />
+        </div>
       )}
 
       {/* MODALES */}
-
-      {/* Modal Compra */}
-      {purchaseModal.show && (
-        <div className="modal-overlay" onClick={() => setPurchaseModal({ show: false, reward: null })}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{textAlign:'center'}}>
-            <button className="modal-close" onClick={() => setPurchaseModal({ show: false, reward: null })}><X size={24} /></button>
-            <h2>{purchaseModal.reward.emoji} {purchaseModal.reward.label}</h2>
-            <p style={{color:'var(--text-muted)', marginTop:'5px'}}>Necesita <strong>{purchaseModal.reward.cost} Puntos Estrella</strong>.</p>
-            <h3 style={{marginTop:'30px', marginBottom:'15px'}}>¿Quién lo quiere?</h3>
-            <div style={{display:'flex', gap:'15px', justifyContent:'center'}}>
-              <button className="kid-buy-btn pikachu" onClick={() => handlePurchase('pikachu')}>
-                <img src={kidsState.pikachu.avatar} alt="pika"/>
-                <div>{kidsState.pikachu.name} <br/>({kidsState.pikachu.points}⭐)</div>
-              </button>
-              <button className="kid-buy-btn spiderman" onClick={() => handlePurchase('spiderman')}>
-                <img src={kidsState.spiderman.avatar} alt="spidey"/>
-                <div>{kidsState.spiderman.name} <br/>({kidsState.spiderman.points}⭐)</div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Selectores y PINs previos */}
       {fruitSelector.show && (
