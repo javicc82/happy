@@ -305,17 +305,22 @@ export default function App() {
 
     return (
       <div className={`kid-card ${kid.theme}`}>
-        <div className="kid-identity" style={{justifyContent: 'space-between', alignItems: 'flex-start'}}>
-          <div style={{display:'flex', gap:'20px', alignItems:'center'}}>
+        <div className="kid-identity" style={{justifyContent: 'space-between', alignItems: 'center'}}>
+          <div style={{display:'flex', gap:'12px', alignItems:'center', maxWidth: '70%'}}>
             <img src={kid.avatar} alt={kid.name} className="kid-avatar" />
-            {isEditing ? (
-              <input value={editName} onChange={e => setEditName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} className="inline-edit-input" autoFocus />
-            ) : (
-              <div className="kid-name" onClick={() => setIsEditing(true)}>{kid.name} ✏️</div>
-            )}
+            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', overflow:'hidden'}}>
+              {isEditing ? (
+                <input value={editName} onChange={e => setEditName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} className="inline-edit-input" style={{width: '100%', padding: '5px'}} autoFocus />
+              ) : (
+                <div className="kid-name" onClick={() => setIsEditing(true)} style={{display:'flex', alignItems:'center', gap:'6px', cursor:'pointer', width:'100%'}}>
+                  <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{kid.name}</span>
+                  <span style={{fontSize:'1.2rem', opacity:0.6, flexShrink:0}}>✏️</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="coin-badge">
-            <Star size={20} color="#FFD700" fill="#FFD700" />
+          <div className="coin-badge" style={{flexShrink:0}}>
+            <Star size={18} color="#FFD700" fill="#FFD700" />
             <span>{kid.points}</span>
           </div>
         </div>

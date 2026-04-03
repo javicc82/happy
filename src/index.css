@@ -187,6 +187,17 @@ body {
   letter-spacing: -0.5px;
 }
 
+@media (max-width: 767px) {
+  .kid-avatar {
+    width: 70px;
+    height: 70px;
+    border-width: 3px;
+  }
+  .kid-name {
+    font-size: 1.5rem;
+  }
+}
+
 /* Face Level Visualizer */
 .face-container {
   display: flex;
