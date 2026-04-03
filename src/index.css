@@ -117,35 +117,32 @@ body {
   transform: rotate(45deg);
 }
 
-.fab-settings {
-  position: fixed;
-  bottom: 25px;
-  right: 25px;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  color: var(--text-light);
+.app-footer {
+  margin-top: 40px;
+  padding: 40px 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--glass-border);
+}
+
+.settings-footer-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  z-index: 999;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
 }
 
-.fab-settings:hover {
-  transform: scale(1.1) rotate(45deg);
-  background: rgba(255,255,255,0.1);
-  border-color: rgba(255,255,255,0.3);
-}
-
-.fab-settings:active {
-  transform: scale(0.95);
+.settings-footer-btn:hover {
+  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Old Header & Energy Bar Cleanup */
@@ -380,6 +377,12 @@ body {
   padding: 20px;
 }
 
+.modal-overlay.scrollable-modal {
+  align-items: flex-start; /* Permite empezar desde arriba en móviles */
+  overflow-y: auto;
+  padding: 40px 10px;
+}
+
 .modal-content {
   background: var(--bg-dark);
   border: 1px solid var(--glass-border);
@@ -387,9 +390,24 @@ body {
   padding: 30px;
   width: 100%;
   max-width: 400px;
+  max-height: 85vh; /* Se asegura de no salirse de la pantalla */
+  overflow-y: auto; /* Habilita el scroll interno */
   position: relative;
   box-shadow: 0 25px 50px rgba(0,0,0,0.5);
   animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Scrollbar personalizada para el modal */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+}
+.modal-content::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+}
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
 }
 
 @keyframes modal-pop {
@@ -662,8 +680,9 @@ body {
 
 .rewards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 15px;
+  padding-bottom: 20px;
 }
 
 .reward-card {

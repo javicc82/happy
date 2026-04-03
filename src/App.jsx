@@ -17,6 +17,7 @@ const INITIAL_APP_SETTINGS = {
   enabledTasks: ['fruit', 'wakeup', 'school', 'read'],
   fruitGoal: 2,
   customTasks: [],
+  lastResetDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
   rewards: [
     { id: 'tv_1h', label: '1 Hora de Tele', emoji: '📺', cost: 15 },
     { id: 'tv_30m', label: '30 min de Tele', emoji: '📺', cost: 8 },
@@ -97,9 +98,20 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('happyApp_settings_v5', JSON.stringify(settings));
   }, [settings]);
+  
+  // Bloquear scroll del body al abrir modales
+  useEffect(() => {
+    const isModalOpen = fruitSelector.show || showPinModal || showSettings || activeShopKid;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+  }, [fruitSelector.show, showPinModal, showSettings, activeShopKid]);
 
   // --- Sincronización Interactiva Cloudflare (Pages API + KV) ---
   const lastSyncStr = useRef("");
+  const apiAvailable = useRef(true);
 
   // Subida automática (Debounced)
   useEffect(() => {
@@ -107,8 +119,13 @@ export default function App() {
     if (currentState === lastSyncStr.current) return;
 
     const timeoutId = setTimeout(async () => {
+      if (!apiAvailable.current) return;
       try {
         const res = await fetch('/api/sync', { method: 'POST', body: currentState });
+        if (res.status === 404) {
+          apiAvailable.current = false;
+          return;
+        }
         if (res.ok) lastSyncStr.current = currentState;
       } catch (e) {
         // Fallback local silencioso si la API no está disponible
@@ -121,8 +138,14 @@ export default function App() {
   // Bajada/Sondeo automático
   useEffect(() => {
     const fetchSync = async () => {
+      if (!apiAvailable.current) return;
       try {
         const res = await fetch('/api/sync');
+        if (res.status === 404) {
+          apiAvailable.current = false;
+          console.log("Modo Offline Local: API no detectada en dev local.");
+          return;
+        }
         if (res.ok) {
           const cloudData = await res.json();
           if (!cloudData || !cloudData.kidsState) return;
@@ -153,6 +176,36 @@ export default function App() {
   }, []);
 
   const COMBINED_TASKS = [...BASE_TASKS, ...settings.customTasks];
+
+  // --- Auto-Reset Diario Automático ---
+  useEffect(() => {
+    const checkReset = () => {
+      const today = new Date().toISOString().split('T')[0];
+      if (settings.lastResetDate !== today) {
+        // Ejecutar reset automático
+        setKidsState(prev => {
+          const newState = {...prev};
+          ['pikachu', 'spiderman'].forEach(kidId => {
+            newState[kidId] = {
+              ...newState[kidId],
+              tasks: { fruit: [] }
+            };
+            COMBINED_TASKS.forEach(t => {
+              if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false;
+            });
+          });
+          return newState;
+        });
+        
+        setSettings(prev => ({ ...prev, lastResetDate: today }));
+        console.log("Día reiniciado automáticamente: ", today);
+      }
+    };
+
+    checkReset();
+    window.addEventListener('focus', checkReset);
+    return () => window.removeEventListener('focus', checkReset);
+  }, [settings.lastResetDate, COMBINED_TASKS]);
 
   // --- Lógica de Progreso ---
   const getKidProgressStats = (kidId) => {
@@ -243,23 +296,17 @@ export default function App() {
 
   // --- Manejadores Economía ---
   const handleCloseDay = () => {
-    if (confirm('¿Cerrar el día y preparar los retos de mañana? Tus Puntos Estrella se mantendrán.')) {
+    if (confirm('¿Quieres resetear todos los retos manualmente ahora? (Útil si te equivocaste de día)')) {
       setKidsState(prev => {
         const newState = {...prev};
-        
         ['pikachu', 'spiderman'].forEach(kidId => {
-          newState[kidId] = {
-            ...newState[kidId],
-            tasks: { fruit: [] }
-          };
-          COMBINED_TASKS.forEach(t => {
-            if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false;
-          });
+          newState[kidId] = { ...newState[kidId], tasks: { fruit: [] } };
+          COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false; });
         });
         return newState;
       });
-      triggerConfetti(['#FFD700', '#FCD34D', '#FFFBEB']);
-      alert('¡Día cerrado! Preparando todo para la siguiente aventura. ☀️');
+      triggerConfetti(['#FFD700', '#FCD34D']);
+      alert('¡Día reseteado manualmente! ☀️');
     }
   };
 
@@ -460,14 +507,12 @@ export default function App() {
         <KidProfile kidId="spiderman" />
       </div>
 
-      <div style={{maxWidth:'600px', margin:'40px auto 100px', textAlign:'center'}}>
-        <button className="close-day-btn" onClick={handleCloseDay}>Cerrar el Día 🛌</button>
-      </div>
-
-      {/* Botón de Ajustes Flotante (FAB) */}
-      <button className="fab-settings" onClick={() => setShowPinModal(true)}>
-        <Settings size={22} />
-      </button>
+      <footer className="app-footer">
+        <button className="settings-footer-btn" onClick={() => setShowPinModal(true)}>
+          <Settings size={20} />
+          <span>Configuración</span>
+        </button>
+      </footer>
 
       {/* Tienda Modal Independiente */}
       {activeShopKid && (
@@ -551,9 +596,10 @@ export default function App() {
               ))}
             </div>
 
-            <div className="settings-section" style={{marginTop:'30px', padding:'15px', background:'rgba(255,255,255,0.05)', borderRadius:'12px'}}>
-              <h3>Base de Datos (Cloudflare KV)</h3>
-              <p style={{fontSize:'0.85rem', color:'var(--text-muted)'}}>La APP funciona guardando copias instantáneas localmente y sincronizándolas de fondo con el Cloudflare Pages KV API cuando usas `wrangler` o en Producción.</p>
+            <div className="settings-section" style={{marginTop:'30px', padding:'15px', background:'rgba(226, 54, 54, 0.1)', borderRadius:'12px', border:'1px solid rgba(226, 54, 54, 0.2)'}}>
+              <h3 style={{color:'#E23636'}}>Zona Admin</h3>
+              <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'10px'}}>Solo usa esto si el auto-reset diario falló o necesitas limpiar los retos a mitad del día.</p>
+              <button className="base-btn reset-manual-btn" onClick={handleCloseDay} style={{width:'100%', background:'#E23636'}}>Resetear Retos Manualmente 🔄</button>
             </div>
 
             <button className="base-btn" onClick={() => setShowSettings(false)} style={{width:'100%', marginTop:'30px'}}>Cerrar</button>
