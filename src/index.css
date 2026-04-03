@@ -59,11 +59,12 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  width: 100%;
-  flex: 1;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
   gap: 30px;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Header & Team Energy Bar */
@@ -88,12 +89,63 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border);
-  padding: 10px 15px;
+  padding: 8px 12px;
   display: flex !important;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   border-radius: 0;
+  width: 100%;
+}
+
+.settings-btn-glass {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-muted);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.settings-btn-glass:hover {
+  color: white;
+  transform: rotate(45deg);
+}
+
+.fab-settings {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.fab-settings:hover {
+  transform: scale(1.1) rotate(45deg);
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.fab-settings:active {
+  transform: scale(0.95);
 }
 
 /* Old Header & Energy Bar Cleanup */
@@ -499,29 +551,35 @@ body {
   transition: all 0.3s ease;
 }
 
+.tab-btn {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 16px;
+}
+
 .tab-btn img {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid transparent;
   transition: all 0.3s ease;
 }
 
 .tab-btn.active-pika {
-  background: var(--theme-pika-glow);
-  color: white;
-  border-color: var(--theme-pika-main);
-  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.2);
+  background: rgba(255, 215, 0, 0.1) !important;
+  color: #FFD700 !important;
+  border-color: rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
 }
-.tab-btn.active-pika img { border-color: var(--theme-pika-main); transform: scale(1.1); }
+.tab-btn.active-pika img { border-color: #FFD700; transform: scale(1.1); }
 
 .tab-btn.active-spidey {
-  background: var(--theme-spidey-glow);
-  color: white;
-  border-color: var(--theme-spidey-main);
-  box-shadow: 0 5px 15px rgba(226, 54, 54, 0.2);
+  background: rgba(226, 54, 54, 0.1) !important;
+  color: #E23636 !important;
+  border-color: rgba(226, 54, 54, 0.5);
+  box-shadow: 0 0 15px rgba(226, 54, 54, 0.1);
 }
-.tab-btn.active-spidey img { border-color: var(--theme-spidey-main); transform: scale(1.1); }
+.tab-btn.active-spidey img { border-color: #E23636; transform: scale(1.1); }
 
 @media (max-width: 767px) {
   .kids-grid[data-active-tab="pikachu"] .spiderman { display: none; }
