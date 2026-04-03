@@ -720,3 +720,11 @@ body {
 .kid-buy-btn img { width: 60px; height: 60px; border-radius: 50%; }
 .kid-buy-btn.pikachu:hover { border-color: var(--theme-pika-main); background: rgba(255,215,0,0.1); }
 .kid-buy-btn.spiderman:hover { border-color: var(--theme-spidey-main); background: rgba(226,54,54,0.1); }
+
+/* Responsive Editing rules */
+@media (max-width: 767px) {
+  .card-edit-btn { display: none !important; }
+}
+@media (min-width: 768px) {
+  .mobile-only-name { display: none !important; }
+}
