@@ -519,9 +519,14 @@ export default function App() {
         <div className="modal-overlay scrollable-modal" onClick={() => setActiveShopKid(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '600px'}}>
             <button className="modal-close" onClick={() => setActiveShopKid(null)}><X size={24} /></button>
-            <div className="team-header" style={{marginBottom: '30px', marginTop: '20px'}}>
-              <h1>Premios de {kidsState[activeShopKid].name} 🎁</h1>
-              <div className={`coin-badge-big ${activeShopKid}`} style={{marginTop: '15px'}}><Star size={24} fill="#FFD700" color="#FFD700" /> <span>{kidsState[activeShopKid].points} ⭐</span></div>
+            <div className="shop-header" style={{marginBottom: '30px', textAlign: 'center'}}>
+              <h2 style={{fontSize: '1.2rem', color: 'var(--text-muted)', marginBottom: '10px'}}>Canje de Premios</h2>
+              <h1 style={{marginBottom: '20px'}}>Tienda de {kidsState[activeShopKid].name} 🛍️</h1>
+              <div className={`coin-badge-big ${activeShopKid}`}>
+                <span className="badge-label">Tu Saldo Actual:</span>
+                <Star size={24} fill="#FFD700" color="#FFD700" /> 
+                <span className="pts-big">{kidsState[activeShopKid].points} ⭐</span>
+              </div>
             </div>
             
             <div className="rewards-grid">

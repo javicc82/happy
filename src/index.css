@@ -662,19 +662,46 @@ body {
 }
 
 .coin-badge-big {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 20px;
-  border-radius: 99px;
-  font-size: 1.5rem;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #FFD700 0%, #F59E0B 100%);
+  border: 2px solid #FDE68A;
+  padding: 12px 25px;
+  border-radius: 20px;
+  color: #000;
   font-weight: 800;
-  white-space: nowrap;
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  margin: 0 auto;
 }
-.coin-badge-big.pikachu { color: var(--theme-pika-main); border-color: var(--theme-pika-main); }
-.coin-badge-big.spiderman { color: var(--theme-spidey-main); border-color: var(--theme-spidey-main); }
+
+.badge-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  margin-right: 5px;
+}
+
+.pts-big {
+  font-size: 1.8rem;
+}
+
+.coin-badge-big.pikachu {
+  background: linear-gradient(135deg, #FFD700 0%, #EAB308 100%);
+}
+
+.coin-badge-big.spiderman {
+  background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+  color: #fff;
+  border-color: rgba(255,255,255,0.4);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+}
+
+.coin-badge-big.spiderman .badge-label {
+  color: rgba(255,255,255,0.9);
+}
 
 .mini-ava { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
 
