@@ -56,13 +56,13 @@ body {
 }
 
 .app-container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 20px;
-  padding-top: 0;
+  padding: 10px;
+  padding-top: 5px; /* Pequeño ajuste para la botonería */
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 15px;
   overflow-x: hidden;
   width: 100%;
 }
@@ -85,11 +85,8 @@ body {
   position: sticky;
   top: 0;
   z-index: 1000;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--glass-border);
-  padding: 8px 12px;
+  background: transparent; /* Eliminado el fondo sólido que generaba el recuadro */
+  padding: 15px 16px 5px 16px;
   display: flex !important;
   justify-content: center;
   align-items: center;
@@ -99,27 +96,59 @@ body {
   width: 100%;
 }
 
-.settings-btn-glass {
-  background: transparent !important;
-  border: none !important;
+.tab-btn {
+  flex: 1;
+  background: #0d1222; /* Fondo oscuro sólido como el de la app */
+  border: 1px solid var(--glass-border);
+  font-size: 0.95rem;
+  font-weight: 700;
   color: var(--text-muted);
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  height: 48px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.settings-btn-glass:hover {
-  color: white;
-  transform: rotate(45deg);
+.tab-btn:active {
+  transform: scale(0.96);
+}
+
+.tab-btn img {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.2);
+}
+
+.tab-btn.active-pika {
+  color: #000 !important;
+  background: var(--theme-pika-main);
+  border-color: transparent;
+  box-shadow: 0 4px 15px var(--theme-pika-glow);
+}
+.tab-btn.active-pika img {
+  border-color: rgba(0,0,0,0.2);
+}
+
+.tab-btn.active-spidey {
+  color: #fff !important;
+  background: var(--theme-spidey-main);
+  border-color: transparent;
+  box-shadow: 0 4px 15px var(--theme-spidey-glow);
+}
+.tab-btn.active-spidey img {
+  border-color: rgba(255,255,255,0.3);
 }
 
 .app-footer {
-  margin-top: 40px;
-  padding: 40px 0;
+  margin-top: 10px;
+  padding: 10px 0;
   display: flex;
   justify-content: center;
   border-top: 1px solid var(--glass-border);
@@ -154,7 +183,7 @@ body {
 .kids-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 30px;
+  gap: 15px; /* Reducido de 30px */
   flex: 1;
 }
 
@@ -167,17 +196,17 @@ body {
 /* Kid Profile Card */
 .kid-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: 30px;
+  border-radius: var(--radius-lg);
+  padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
   position: relative;
   overflow: hidden;
+  height: max-content;
 }
 
 .kid-card::before {
@@ -408,6 +437,75 @@ body {
 }
 
 /* Scrollbar personalizada para el modal */
+/* Settings Kid Management UI */
+.settings-kids-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-kid-item {
+  transition: all 0.2s ease;
+}
+
+.settings-kid-item:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+.theme-sel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+}
+
+.theme-sel.pika { background: rgba(255, 215, 0, 0.1); color: var(--theme-pika-main); border-color: rgba(255, 215, 0, 0.2); }
+.theme-sel.spidey { background: rgba(226, 54, 54, 0.1); color: var(--theme-spidey-main); border-color: rgba(226, 54, 54, 0.2); }
+
+.theme-sel.active {
+  transform: scale(1.05);
+}
+.theme-sel.pika.active { background: var(--theme-pika-main); color: #000; border-color: #fff; }
+.theme-sel.spidey.active { background: var(--theme-spidey-main); color: #fff; border-color: #fff; }
+
+.base-input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.base-input:focus {
+  border-color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.1);
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover { background: rgba(255,255,255,0.2); }
+.icon-btn.delete:hover { background: rgba(226, 54, 54, 0.2); }
+
 .modal-content::-webkit-scrollbar {
   width: 8px;
 }
@@ -553,62 +651,10 @@ body {
 
 /* Mobile Tabs Navigation */
 .mobile-tabs {
-  display: flex;
-  gap: 10px;
-  background: var(--glass-bg);
-  padding: 10px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--glass-border);
-  margin-bottom: -15px; 
+  display: flex !important; /* Aseguramos que sea flex siempre */
 }
 
-.tab-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-weight: 700;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.tab-btn {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 10px 16px;
-}
-
-.tab-btn img {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.tab-btn.active-pika {
-  background: rgba(255, 215, 0, 0.1) !important;
-  color: #FFD700 !important;
-  border-color: rgba(255, 215, 0, 0.5);
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
-}
-.tab-btn.active-pika img { border-color: #FFD700; transform: scale(1.1); }
-
-.tab-btn.active-spidey {
-  background: rgba(226, 54, 54, 0.1) !important;
-  color: #E23636 !important;
-  border-color: rgba(226, 54, 54, 0.5);
-  box-shadow: 0 0 15px rgba(226, 54, 54, 0.1);
-}
-.tab-btn.active-spidey img { border-color: #E23636; transform: scale(1.1); }
-
+/* Mobile Swipe Animation */
 @media (max-width: 767px) {
   .kids-grid[data-active-tab="pikachu"] .spiderman { display: none; }
   .kids-grid[data-active-tab="spiderman"] .pikachu { display: none; }
