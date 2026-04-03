@@ -361,7 +361,7 @@ export default function App() {
       <div className="team-header" style={{marginBottom: '20px'}}>
         <h1>Premios Mágicos 🎁</h1>
         <p>¡Usa tus Puntos Súper aquí!</p>
-        <div style={{display:'flex', justifyContent:'center', gap:'20px', marginTop:'15px'}}>
+        <div style={{display:'flex', justifyContent:'center', flexWrap: 'wrap', gap:'20px', marginTop:'15px'}}>
           <div className="coin-badge-big pikachu"><img src={kidsState.pikachu.avatar} alt="pika" className="mini-ava" /> <span>{kidsState.pikachu.points} ⭐</span></div>
           <div className="coin-badge-big spiderman"><img src={kidsState.spiderman.avatar} alt="spidey" className="mini-ava" /> <span>{kidsState.spiderman.points} ⭐</span></div>
         </div>

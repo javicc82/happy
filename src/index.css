@@ -601,6 +601,7 @@ body {
   font-size: 1.2rem;
   color: #FFD700;
   box-shadow: 0 5px 15px rgba(255, 215, 0, 0.1);
+  white-space: nowrap;
 }
 
 .coin-badge-big {
@@ -613,6 +614,7 @@ body {
   border-radius: 99px;
   font-size: 1.5rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 .coin-badge-big.pikachu { color: var(--theme-pika-main); border-color: var(--theme-pika-main); }
 .coin-badge-big.spiderman { color: var(--theme-spidey-main); border-color: var(--theme-spidey-main); }
@@ -670,6 +672,7 @@ body {
   font-weight: 900;
   margin-top: 5px;
   box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+  white-space: nowrap;
 }
 
 .close-day-btn {
