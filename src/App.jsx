@@ -449,13 +449,10 @@ export default function App() {
 
   return (
     <div className="app-container" style={{paddingTop: 0}}>
-      {/* Cabecera Minimalista: Tabs Sticky con Ajustes */}
+      {/* Cabecera Minimalista: Tabs Sticky */}
       <div className="mobile-tabs sticky-header">
         <KidNameTab kidId="pikachu" />
         <KidNameTab kidId="spiderman" />
-        <button className="settings-btn-glass mini" onClick={() => setShowPinModal(true)} style={{marginLeft: 'auto', width: '40px', height: '40px'}}>
-          <Settings size={18} />
-        </button>
       </div>
 
       <div className="kids-grid" data-active-tab={activeTab}>
@@ -466,6 +463,11 @@ export default function App() {
       <div style={{maxWidth:'600px', margin:'40px auto 100px', textAlign:'center'}}>
         <button className="close-day-btn" onClick={handleCloseDay}>Cerrar el Día 🛌</button>
       </div>
+
+      {/* Botón de Ajustes Flotante (FAB) */}
+      <button className="fab-settings" onClick={() => setShowPinModal(true)}>
+        <Settings size={22} />
+      </button>
 
       {/* Tienda Modal Independiente */}
       {activeShopKid && (
