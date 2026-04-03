@@ -21,24 +21,25 @@ const INITIAL_APP_SETTINGS = {
   customTasks: [],
   lastResetDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
   rewards: [
-    { id: 'tv_1h', label: '1 Hora de Tele', emoji: '📺', cost: 15 },
-    { id: 'tv_30m', label: '30 min de Tele', emoji: '📺', cost: 8 },
     { id: 'park', label: 'Salir al parque', emoji: '🛝', cost: 5 },
-    { id: 'soccer', label: 'Fútbol extra', emoji: '⚽', cost: 10 },
-    { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 20 }
+    { id: 'story', label: 'Cuento extra', emoji: '📖', cost: 8 },
+    { id: 'soccer', label: 'Fútbol / Deporte', emoji: '⚽', cost: 10 },
+    { id: 'icecream', label: 'Ir a por un Helado', emoji: '🍦', cost: 15 },
+    { id: 'dinner', label: 'Elegir la cena', emoji: '🍕', cost: 20 },
+    { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 25 }
   ]
 };
 
 const INITIAL_STATE = {
-  pikachu: {
-    name: 'Pikachu',
+  "1700000000000": {
+    name: 'Martín',
     theme: 'pikachu',
     avatar: '/avatar_pikachu.png',
     tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
     points: 0
   },
-  spiderman: {
-    name: 'Spiderman',
+  "1700000000001": {
+    name: 'Nacho',
     theme: 'spiderman',
     avatar: '/avatar_spiderman.png',
     tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
@@ -48,41 +49,19 @@ const INITIAL_STATE = {
 
 export default function App() {
   const [kidsState, setKidsState] = useState(() => {
-    const saved = localStorage.getItem('happyApp_state_v6');
+    const saved = localStorage.getItem('happyApp_state_v7');
     if (saved) return JSON.parse(saved);
-    const old = localStorage.getItem('happyApp_state_v5');
-    if (old) {
-      const parsed = JSON.parse(old);
-      if(parsed.pikachu) parsed.pikachu.points = parsed.pikachu.points ?? parsed.pikachu.coins ?? 0;
-      if(parsed.spiderman) parsed.spiderman.points = parsed.spiderman.points ?? parsed.spiderman.coins ?? 0;
-      return parsed; 
-    }
     return INITIAL_STATE;
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('happyApp_settings_v6');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Migración: si existe 'icecream', lo cambiamos por el nuevo 'boardgame'
-      if (parsed.rewards && parsed.rewards.some(r => r.id === 'icecream')) {
-        parsed.rewards = parsed.rewards.map(r => 
-          r.id === 'icecream' ? { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 20 } : r
-        );
-      }
-      return parsed;
-    }
-    const old = localStorage.getItem('happyApp_settings_v4');
-    if (old) {
-      const parsed = JSON.parse(old);
-      // Forzamos las nuevas rewards por defecto para reemplazar las antiguas
-      return { ...INITIAL_APP_SETTINGS, ...parsed, rewards: INITIAL_APP_SETTINGS.rewards };
-    }
+    const saved = localStorage.getItem('happyApp_settings_v7');
+    if (saved) return JSON.parse(saved);
     return INITIAL_APP_SETTINGS;
   });
 
   // UI Modals & Navigation
-  const [activeTab, setActiveTab] = useState('pikachu');
+  const [activeTab, setActiveTab] = useState(() => Object.keys(kidsState)[0] || null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -94,6 +73,9 @@ export default function App() {
 
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskEmoji, setNewTaskEmoji] = useState('⭐');
+
+  // Editor de Niños
+  const [kidEditor, setKidEditor] = useState({ show: false, kidId: null, name: '', theme: '', avatar: '' });
 
   // --- Toast System ---
   const showToast = (message, type = 'info', emoji = '') => {
@@ -206,10 +188,10 @@ export default function App() {
     const checkReset = () => {
       const today = new Date().toISOString().split('T')[0];
       if (settings.lastResetDate !== today) {
-        // Ejecutar reset automático
+        // Ejecutar reset automático para todos los niños
         setKidsState(prev => {
           const newState = {...prev};
-          ['pikachu', 'spiderman'].forEach(kidId => {
+          Object.keys(newState).forEach(kidId => {
             newState[kidId] = {
               ...newState[kidId],
               tasks: { fruit: [] }
@@ -254,16 +236,14 @@ export default function App() {
     return { score, total };
   };
 
-  const pikaStats = getKidProgressStats('pikachu');
-  const spiderStats = getKidProgressStats('spiderman');
-  
-  const totalScore = pikaStats.score + spiderStats.score;
-  const totalPossible = pikaStats.total + spiderStats.total;
+  const allStats = Object.keys(kidsState).map(id => getKidProgressStats(id));
+  const totalScore = allStats.reduce((acc, s) => acc + s.score, 0);
+  const totalPossible = allStats.reduce((acc, s) => acc + s.total, 0);
   const teamPercentage = totalPossible === 0 ? 0 : (totalScore / totalPossible) * 100;
 
   useEffect(() => {
     if (totalScore === totalPossible && totalPossible > 0) {
-      triggerConfetti(['#FFD700', '#E23636']);
+      triggerConfetti(['#FFD700', '#E23636', '#22c55e']);
     }
   }, [totalScore, totalPossible]);
 
@@ -323,7 +303,7 @@ export default function App() {
     showConfirm('¿Resetear todos los retos manualmente ahora?', () => {
       setKidsState(prev => {
         const newState = {...prev};
-        ['pikachu', 'spiderman'].forEach(kidId => {
+        Object.keys(newState).forEach(kidId => {
           newState[kidId] = { ...newState[kidId], tasks: { fruit: [] } };
           COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false; });
         });
@@ -349,11 +329,53 @@ export default function App() {
   };
 
   // --- Configuración Padres ---
+  // --- Lógica Niños ---
+  const saveKidProfile = () => {
+    if (!kidEditor.name.trim()) return showToast('El nombre es obligatorio', 'error');
+    
+    setKidsState(prev => {
+      const id = kidEditor.kidId || Date.now().toString();
+      const isNew = !kidEditor.kidId;
+      
+      const newKid = {
+        name: kidEditor.name,
+        theme: kidEditor.theme || 'pikachu',
+        avatar: kidEditor.avatar || '/avatar_pikachu.png',
+        points: isNew ? 0 : prev[id].points,
+        tasks: isNew ? { fruit: [] } : prev[id].tasks
+      };
+
+      if (isNew) {
+        COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newKid.tasks[t.id] = false; });
+      }
+
+      const newState = { ...prev, [id]: newKid };
+      if (isNew && !activeTab) setActiveTab(id);
+      return newState;
+    });
+    
+    setKidEditor({ show: false, kidId: null, name: '', theme: '', avatar: '' });
+    showToast('Perfil actualizado', 'success');
+  };
+
+  const deleteKid = (id) => {
+    showConfirm(`¿Eliminar a ${kidsState[id].name}? Se borrarán sus puntos.`, () => {
+      setKidsState(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        const remainingKeys = Object.keys(newState);
+        if (activeTab === id) setActiveTab(remainingKeys[0] || null);
+        return newState;
+      });
+      showToast('Niño eliminado', 'info');
+    });
+  };
+
   const handlePinSubmit = () => {
     if (pinInput === '1234') {
       setShowPinModal(false); setPinInput(''); setShowSettings(true);
     } else {
-      showToast('PIN incorrecto. Inténtalo de nuevo.', 'error', '🔒');
+      showToast('PIN incorrecto.', 'error', '🔒');
       setPinInput('');
     }
   };
@@ -393,47 +415,15 @@ export default function App() {
   // --- Renderizado de Pestañas (Editables en móvil) ---
   const KidNameTab = ({ kidId }) => {
     const kid = kidsState[kidId];
-    const [isEditingTab, setIsEditingTab] = useState(false);
-    const [editTabName, setEditTabName] = useState(kid.name);
-    
-    // Sincronizar el nombre si cambió desde otro lado o nube
-    useEffect(() => setEditTabName(kid.name), [kid.name]);
-
-    const saveTabName = (e) => {
-      if (e) e.stopPropagation();
-      setKidsState(p => ({...p, [kidId]: {...p[kidId], name: editTabName}}));
-      setIsEditingTab(false);
-    };
+    if (!kid) return null;
 
     return (
       <button 
-        className={`tab-btn ${activeTab === kidId ? (kidId==='pikachu'?'active-pika':'active-spidey') : ''}`} 
-        onClick={() => !isEditingTab && setActiveTab(kidId)}
+        className={`tab-btn ${activeTab === kidId ? (kid.theme==='pikachu'?'active-pika':'active-spidey') : ''}`} 
+        onClick={() => setActiveTab(kidId)}
       >
         <img src={kid.avatar} alt={kid.name} />
-        {isEditingTab ? (
-          <input 
-            value={editTabName} 
-            onChange={e => setEditTabName(e.target.value)} 
-            onBlur={saveTabName} 
-            onKeyDown={e => e.key === 'Enter' && saveTabName(e)} 
-            onClick={e => e.stopPropagation()}
-            className="inline-edit-input" 
-            style={{ width: '90px', padding: '2px 5px', fontSize: '1rem' }} 
-            autoFocus 
-          />
-        ) : (
-          <span style={{ display:'flex', alignItems:'center', gap:'5px' }}>
-            <span>{kid.name}</span>
-            {activeTab === kidId && (
-              <span 
-                onClick={(e) => { e.stopPropagation(); setIsEditingTab(true); }} 
-                className="tab-edit-btn"
-                style={{ fontSize: '0.8rem', opacity: 0.7, padding: '5px' }}
-              >✏️</span>
-            )}
-          </span>
-        )}
+        <span>{kid.name}</span>
       </button>
     );
   };
@@ -441,38 +431,19 @@ export default function App() {
   // --- Componentes UI Locales ---
   const KidProfile = ({ kidId }) => {
     const kid = kidsState[kidId];
+    if (!kid) return null;
     const stats = getKidProgressStats(kidId);
     const percent = stats.total === 0 ? 0 : stats.score / stats.total;
     let faceIndex = 0;
     if (percent > 0) faceIndex = 1; if (percent >= 0.5) faceIndex = 2; if (percent >= 0.75) faceIndex = 3; if (percent >= 1) faceIndex = 4;
     const currentFace = PROGRESS_FACES[faceIndex];
     
-    const [isEditing, setIsEditing] = useState(false);
-    const [editName, setEditName] = useState(kid.name);
-
-    useEffect(() => setEditName(kid.name), [kid.name]);
-
-    const saveName = () => { setKidsState(p => ({...p, [kidId]: {...p[kidId], name: editName}})); setIsEditing(false); };
-
     return (
       <div className={`kid-card ${kid.theme}`}>
         <div className="kid-identity" style={{justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{display:'flex', gap:'12px', alignItems:'center', maxWidth: '70%'}}>
             <img src={kid.avatar} alt={kid.name} className="kid-avatar" />
-            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', overflow:'hidden'}}>
-              {isEditing ? (
-                <input value={editName} onChange={e => setEditName(e.target.value)} onBlur={saveName} onKeyDown={e => e.key === 'Enter' && saveName()} className="inline-edit-input card-edit-btn" style={{width: '100%', padding: '5px'}} autoFocus />
-              ) : (
-                <div className="kid-name card-edit-btn" onClick={() => setIsEditing(true)} style={{display:'flex', alignItems:'center', gap:'6px', cursor:'pointer', width:'100%'}}>
-                  <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{kid.name}</span>
-                  <span style={{fontSize:'1.2rem', opacity:0.6, flexShrink:0}}>✏️</span>
-                </div>
-              )}
-              {/* Fallback visual puro del nombre en móvil (no editable) */}
-              <div className="kid-name mobile-only-name" style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                {kid.name}
-              </div>
-            </div>
+            <div className="kid-name">{kid.name}</div>
           </div>
           <button
             className="coin-badge coin-badge-tappable"
@@ -526,13 +497,15 @@ export default function App() {
     <div className="app-container" style={{paddingTop: 0}}>
       {/* Cabecera Minimalista: Tabs Sticky */}
       <div className="mobile-tabs sticky-header">
-        <KidNameTab kidId="pikachu" />
-        <KidNameTab kidId="spiderman" />
+        {Object.keys(kidsState).map(kidId => (
+          <KidNameTab key={kidId} kidId={kidId} />
+        ))}
       </div>
 
       <div className="kids-grid" data-active-tab={activeTab}>
-        <KidProfile kidId="pikachu" />
-        <KidProfile kidId="spiderman" />
+        {Object.keys(kidsState).map(kidId => (
+          <KidProfile key={kidId} kidId={kidId} />
+        ))}
       </div>
 
       <footer className="app-footer">
@@ -572,7 +545,7 @@ export default function App() {
 
       {/* MODALES */}
 
-      {/* Selectores y PINs previos */}
+      {/* Selector de Fruta */}
       {fruitSelector.show && (
         <div className="modal-overlay" onClick={() => setFruitSelector({ show: false, kidId: null })}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -587,6 +560,7 @@ export default function App() {
         </div>
       )}
 
+      {/* PIN Padres */}
       {showPinModal && (
         <div className="modal-overlay" onClick={() => setShowPinModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -599,34 +573,35 @@ export default function App() {
         </div>
       )}
 
+      {/* Configuración Completa */}
       {showSettings && (
         <div className="modal-overlay scrollable-modal" onClick={() => setShowSettings(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '500px', maxHeight:'90vh', overflowY:'auto'}}>
             <button className="modal-close" onClick={() => setShowSettings(false)}><X size={24} /></button>
-            <h2 style={{borderBottom:'1px solid rgba(255,255,255,0.1)', paddingBottom:'15px', marginBottom:'20px'}}>⚙️ Avanzado</h2>
+            <h2 style={{borderBottom:'1px solid rgba(255,255,255,0.1)', paddingBottom:'15px', marginBottom:'20px'}}>⚙️ Ajustes de Familia</h2>
             
-            <div className="settings-section" style={{background:'rgba(255,255,255,0.02)', padding:'15px', borderRadius:'12px', border:'1px dashed rgba(255,255,255,0.2)'}}>
-              <h3>Añadir Nuevo Reto</h3>
-              <div style={{display:'flex', gap:'8px', alignItems:'stretch', marginTop:'10px', width:'100%'}}>
-                <input
-                  className="inline-edit-input"
-                  style={{flex:1, minWidth:0, fontSize:'1rem', padding:'10px', height:'42px', boxSizing:'border-box'}}
-                  placeholder="Ej: Deberes"
-                  value={newTaskName}
-                  onChange={e=>setNewTaskName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && createCustomTask()}
-                />
-                <button
-                  className="base-btn"
-                  style={{padding:'0 14px', height:'42px', flexShrink:0, boxSizing:'border-box'}}
-                  onClick={createCustomTask}
-                >
-                  <Plus size={18}/>
-                </button>
+            <section className="settings-section">
+              <h3>Niños</h3>
+              <div className="settings-kids-list" style={{marginTop:'10px'}}>
+                {Object.keys(kidsState).map(kidId => (
+                  <div key={kidId} className="settings-kid-item" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'rgba(255,255,255,0.05)', borderRadius:'12px', marginBottom:'8px'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                      <img src={kidsState[kidId].avatar} width="40" height="40" style={{borderRadius:'50%', border:'2px solid var(--glass-border)'}} alt={kidsState[kidId].name} />
+                      <span style={{fontWeight:'700'}}>{kidsState[kidId].name}</span>
+                    </div>
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <button className="icon-btn" onClick={() => setKidEditor({ show: true, kidId, name: kidsState[kidId].name, theme: kidsState[kidId].theme, avatar: kidsState[kidId].avatar })}>✏️</button>
+                      <button className="icon-btn" onClick={() => deleteKid(kidId)} style={{color:'#E23636'}}><Trash2 size={18} /></button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+              <button className="base-btn secondary" onClick={() => setKidEditor({ show: true, kidId: null, name: '', theme: 'pikachu', avatar: '/avatar_pikachu.png' })} style={{width:'100%', marginTop:'10px'}}>
+                <Plus size={16} /> Añadir otro niño
+              </button>
+            </section>
 
-            <div className="settings-section" style={{marginTop:'30px'}}>
+            <section className="settings-section" style={{marginTop:'30px'}}>
               <h3>Retos Activos Hoy</h3>
               {COMBINED_TASKS.map(t => (
                 <div key={t.id} style={{display:'flex', alignItems:'center', gap:'10px', marginBottom: '10px'}}>
@@ -634,25 +609,60 @@ export default function App() {
                     <input type="checkbox" checked={settings.enabledTasks.includes(t.id)} onChange={() => toggleSettingTask(t.id)} />
                     <span>{t.custom && t.emoji} {t.label} </span>
                   </label>
-                  {t.custom && (
-                    <button onClick={() => deleteCustomTask(t.id)} style={{background:'rgba(226, 54, 54, 0.2)', color:'#E23636', border:'none', borderRadius:'12px', width:'50px', height:'54px', cursor:'pointer'}}><Trash2 size={24}/></button>
-                  )}
                 </div>
               ))}
-            </div>
+            </section>
 
-            <div className="settings-section" style={{marginTop:'30px', padding:'15px', background:'rgba(226, 54, 54, 0.1)', borderRadius:'12px', border:'1px solid rgba(226, 54, 54, 0.2)'}}>
-              <h3 style={{color:'#E23636'}}>Zona Admin</h3>
-              <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'10px'}}>Solo usa esto si el auto-reset diario falló o necesitas limpiar los retos a mitad del día.</p>
-              <button className="base-btn reset-manual-btn" onClick={handleCloseDay} style={{width:'100%', background:'#E23636'}}>Resetear Retos Manualmente 🔄</button>
-            </div>
+            <section className="settings-section" style={{marginTop:'30px', padding:'15px', background:'rgba(226, 54, 54, 0.1)', borderRadius:'12px', border:'1px solid rgba(226, 54, 54, 0.2)'}}>
+              <h3 style={{color:'#E23636'}}>Zona de Peligro</h3>
+              <p style={{fontSize:'0.85rem', color:'var(--text-muted)', marginBottom:'10px'}}>Reinicia todos los retos de hoy manualmente.</p>
+              <button className="base-btn" onClick={handleCloseDay} style={{width:'100%', background:'#E23636'}}>Resetear Retos 🔄</button>
+            </section>
 
-            <button className="base-btn" onClick={() => setShowSettings(false)} style={{width:'100%', marginTop:'30px'}}>Cerrar</button>
+            <button className="base-btn" onClick={() => setShowSettings(false)} style={{width:'100%', marginTop:'30px'}}>Cerrar Ajustes</button>
           </div>
         </div>
       )}
 
-      {/* Toast Notification System */}
+      {/* Editor de Perfil de Niño */}
+      {kidEditor.show && (
+        <div className="modal-overlay" style={{zIndex: 2500}} onClick={() => setKidEditor({ show: false, kidId: null, name: '', theme: '', avatar: '' })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setKidEditor({ show: false, kidId: null, name: '', theme: '', avatar: '' })}><X size={24} /></button>
+            <h2>{kidEditor.kidId ? 'Editar Perfil' : 'Nuevo Niño'}</h2>
+            
+            <div style={{marginTop:'20px'}}>
+              <label style={{display:'block', marginBottom:'8px', fontSize:'0.9rem', color:'var(--text-muted)'}}>Nombre del niño:</label>
+              <input value={kidEditor.name} onChange={e => setKidEditor({...kidEditor, name: e.target.value})} className="base-input" placeholder="Ej. Martín" autoFocus />
+            </div>
+
+            <div style={{marginTop:'20px'}}>
+              <label style={{display:'block', marginBottom:'8px', fontSize:'0.9rem', color:'var(--text-muted)'}}>Tema Visual:</label>
+              <div style={{display:'flex', gap:'10px'}}>
+                <button className={`theme-sel pika ${kidEditor.theme==='pikachu'?'active':''}`} onClick={() => setKidEditor({...kidEditor, theme: 'pikachu', avatar: '/avatar_pikachu.png'})}>Pikachu (Amarillo)</button>
+                <button className={`theme-sel spidey ${kidEditor.theme==='spiderman'?'active':''}`} onClick={() => setKidEditor({...kidEditor, theme: 'spiderman', avatar: '/avatar_spiderman.png'})}>Spiderman (Rojo)</button>
+              </div>
+            </div>
+
+            <button className="base-btn" onClick={saveKidProfile} style={{width:'100%', marginTop:'25px'}}>Guardar Cambios</button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación Común */}
+      {confirmModal.show && (
+        <div className="modal-overlay" style={{zIndex: 3000}}>
+          <div className="modal-content" style={{textAlign:'center', maxWidth:'340px'}}>
+            <h2 style={{marginBottom:'20px'}}>{confirmModal.message}</h2>
+            <div style={{display:'flex', gap:'10px'}}>
+              <button className="base-btn secondary" style={{flex:1}} onClick={() => setConfirmModal({show:false})}>Cancelar</button>
+              <button className="base-btn" style={{flex:1, background:'#E23636'}} onClick={() => { confirmModal.onConfirm(); setConfirmModal({show:false}); }}>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toasts */}
       <div className="toast-container">
         {toasts.map(toast => (
           <div key={toast.id} className={`toast toast-${toast.type}`}>
@@ -661,20 +671,6 @@ export default function App() {
           </div>
         ))}
       </div>
-
-      {/* Custom Confirm Modal */}
-      {confirmModal.show && (
-        <div className="modal-overlay" onClick={handleConfirmNo}>
-          <div className="modal-content confirm-modal" onClick={e => e.stopPropagation()} style={{maxWidth: '340px', textAlign: 'center'}}>
-            <p className="confirm-message">{confirmModal.message}</p>
-            <div className="confirm-actions">
-              <button className="confirm-btn confirm-cancel" onClick={handleConfirmNo}>Cancelar</button>
-              <button className="confirm-btn confirm-ok" onClick={handleConfirmYes}>Confirmar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
