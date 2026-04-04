@@ -439,7 +439,7 @@ export default function App() {
     const currentFace = PROGRESS_FACES[faceIndex];
     
     return (
-      <div className={`kid-card ${kid.theme}`}>
+      <div className={`kid-card ${kid.theme}`} data-active={activeTab === kidId} data-kid-id={kidId}>
         <div className="kid-identity" style={{justifyContent: 'space-between', alignItems: 'center'}}>
           <div style={{display:'flex', gap:'12px', alignItems:'center', maxWidth: '70%'}}>
             <img src={kid.avatar} alt={kid.name} className="kid-avatar" />

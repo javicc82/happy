@@ -656,10 +656,9 @@ body {
 
 /* Mobile Swipe Animation */
 @media (max-width: 767px) {
-  .kids-grid[data-active-tab="pikachu"] .spiderman { display: none; }
-  .kids-grid[data-active-tab="spiderman"] .pikachu { display: none; }
-  
-  .kid-card {
+  .kids-grid .kid-card { display: none !important; }
+  .kids-grid .kid-card[data-active="true"] { 
+    display: flex !important; 
     animation: tab-swipe 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   }
 }
