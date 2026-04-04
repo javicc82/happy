@@ -6,27 +6,25 @@ import './index.css';
 // Componentes y Configuración Base
 const BASE_TASKS = [
   { id: 'fruit',   label: 'Comer fruta',           type: 'multiple', icon: Apple, options: ['🍌','🍎','🍈','🍉','🍇','🍑','🍐','🍊','🥝','🍓','🍒'] },
-  { id: 'teeth',   label: 'Lavarse los dientes',    type: 'boolean', icon: null },
-  { id: 'hands',   label: 'Lavarse las manos',      type: 'boolean', icon: null },
-  { id: 'toys',    label: 'Recoger los juguetes',   type: 'boolean', icon: null },
-  { id: 'eat',     label: 'Comer lo que toque',     type: 'boolean', icon: null },
-  { id: 'dress',   label: 'Vestirse sin ayuda',     type: 'boolean', icon: null },
+  { id: 'toys',    label: 'Recoger',                type: 'counter', icon: null },
+  { id: 'eat',     label: 'Comer lo que toque',     type: 'counter', icon: null },
+  { id: 'dress',   label: 'Vestirse sin ayuda',     type: 'counter', icon: null },
 ];
 
 const PROGRESS_FACES = ['😴', '🙂', '😊', '😄', '🤩'];
 
 const INITIAL_APP_SETTINGS = {
-  enabledTasks: ['fruit', 'teeth', 'hands', 'toys', 'eat', 'dress'],
-  fruitGoal: 2,
+  enabledTasks: ['fruit', 'toys', 'eat', 'dress'],
+  fruitGoal: 3,
   customTasks: [],
   lastResetDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
   rewards: [
     { id: 'park', label: 'Salir al parque', emoji: '🛝', cost: 5 },
-    { id: 'story', label: 'Cuento extra', emoji: '📖', cost: 8 },
-    { id: 'soccer', label: 'Fútbol / Deporte', emoji: '⚽', cost: 10 },
-    { id: 'icecream', label: 'Ir a por un Helado', emoji: '🍦', cost: 15 },
-    { id: 'dinner', label: 'Elegir la cena', emoji: '🍕', cost: 20 },
-    { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 25 }
+    { id: 'story', label: 'Cuento extra', emoji: '📖', cost: 5 },
+    { id: 'soccer', label: 'Fútbol / Deporte', emoji: '⚽', cost: 5 },
+    { id: 'crafts', label: 'Hacer manualidades', emoji: '🎨', cost: 5 },
+    { id: 'boardgame', label: 'Juego de mesa', emoji: '🎲', cost: 5 },
+    { id: 'excursion', label: 'Excursión especial', emoji: '🏕️', cost: 5 }
   ]
 };
 
@@ -35,27 +33,27 @@ const INITIAL_STATE = {
     name: 'Martín',
     theme: 'pikachu',
     avatar: '/avatar_pikachu.png',
-    tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
+    tasks: { fruit: [], toys: 0, eat: 0, dress: 0 },
     points: 0
   },
   "1700000000001": {
     name: 'Nacho',
     theme: 'spiderman',
     avatar: '/avatar_spiderman.png',
-    tasks: { fruit: [], teeth: false, hands: false, toys: false, eat: false, dress: false },
+    tasks: { fruit: [], toys: 0, eat: 0, dress: 0 },
     points: 0
   }
 };
 
 export default function App() {
   const [kidsState, setKidsState] = useState(() => {
-    const saved = localStorage.getItem('happyApp_state_v7');
+    const saved = localStorage.getItem('happyApp_state_v12');
     if (saved) return JSON.parse(saved);
     return INITIAL_STATE;
   });
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem('happyApp_settings_v7');
+    const saved = localStorage.getItem('happyApp_settings_v12');
     if (saved) return JSON.parse(saved);
     return INITIAL_APP_SETTINGS;
   });
@@ -121,7 +119,7 @@ export default function App() {
 
   // Subida automática (Debounced)
   useEffect(() => {
-    const currentState = JSON.stringify({ kidsState, settings });
+    const currentState = JSON.stringify({ kidsState, settings, schemaVersion: 12 });
     if (currentState === lastSyncStr.current) return;
 
     const timeoutId = setTimeout(async () => {
@@ -156,6 +154,12 @@ export default function App() {
           const cloudData = await res.json();
           if (!cloudData || !cloudData.kidsState) return;
           
+          // MIGRACIÓN: Ignorar la descarga si el formato del KV es de una versión menor (protege el esquema v12)
+          if (!cloudData.schemaVersion || cloudData.schemaVersion < 12) {
+             console.log("KV ignorado: la nube tiene una versión antigua. Se sobrescribirá con el esquema v12.");
+             return; 
+          }
+
           const cloudStr = JSON.stringify(cloudData);
           if (cloudStr !== lastSyncStr.current) {
             setKidsState(cloudData.kidsState);
@@ -197,7 +201,7 @@ export default function App() {
               tasks: { fruit: [] }
             };
             COMBINED_TASKS.forEach(t => {
-              if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false;
+              if(t.id !== 'fruit') newState[kidId].tasks[t.id] = 0;
             });
           });
           return newState;
@@ -217,35 +221,18 @@ export default function App() {
   const getKidProgressStats = (kidId) => {
     const kidTasks = kidsState[kidId].tasks;
     let score = 0;
-    let total = 0;
 
     settings.enabledTasks.forEach(taskId => {
-      const taskDef = COMBINED_TASKS.find(t => t.id === taskId);
-      if (!taskDef) return;
-
       if (taskId === 'fruit') {
         const fruitsEaten = kidTasks.fruit ? kidTasks.fruit.length : 0;
         score += Math.min(fruitsEaten, settings.fruitGoal);
-        total += settings.fruitGoal;
       } else {
-        if (kidTasks[taskId]) score += 1;
-        total += 1;
+        score += kidTasks[taskId] || 0;
       }
     });
 
-    return { score, total };
+    return { score };
   };
-
-  const allStats = Object.keys(kidsState).map(id => getKidProgressStats(id));
-  const totalScore = allStats.reduce((acc, s) => acc + s.score, 0);
-  const totalPossible = allStats.reduce((acc, s) => acc + s.total, 0);
-  const teamPercentage = totalPossible === 0 ? 0 : (totalScore / totalPossible) * 100;
-
-  useEffect(() => {
-    if (totalScore === totalPossible && totalPossible > 0) {
-      triggerConfetti(['#FFD700', '#E23636', '#22c55e']);
-    }
-  }, [totalScore, totalPossible]);
 
   const triggerConfetti = (colors = ['#FFD700', '#22c55e']) => {
     var duration = 2500;
@@ -258,19 +245,22 @@ export default function App() {
   };
 
   // --- Manejadores Rutina ---
-  const handleTaskClick = (kidId, taskId) => {
+  const handleTaskClick = (kidId, taskId, isSubtract = false) => {
     if (taskId === 'fruit') return setFruitSelector({ show: true, kidId });
     
     setKidsState(prev => {
-      const isChecking = !prev[kidId].tasks[taskId];
-      const pointChange = isChecking ? 1 : -1;
+      const currentCount = prev[kidId].tasks[taskId] || 0;
+      if (isSubtract && currentCount === 0) return prev;
+      
+      const newCount = isSubtract ? currentCount - 1 : currentCount + 1;
+      const pointChange = isSubtract ? -1 : 1;
       
       return {
         ...prev, 
         [kidId]: { 
           ...prev[kidId], 
           points: Math.max(0, (prev[kidId].points || 0) + pointChange),
-          tasks: { ...prev[kidId].tasks, [taskId]: isChecking } 
+          tasks: { ...prev[kidId].tasks, [taskId]: newCount } 
         }
       };
     });
@@ -305,7 +295,7 @@ export default function App() {
         const newState = {...prev};
         Object.keys(newState).forEach(kidId => {
           newState[kidId] = { ...newState[kidId], tasks: { fruit: [] } };
-          COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newState[kidId].tasks[t.id] = false; });
+          COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newState[kidId].tasks[t.id] = 0; });
         });
         return newState;
       });
@@ -346,7 +336,7 @@ export default function App() {
       };
 
       if (isNew) {
-        COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newKid.tasks[t.id] = false; });
+        COMBINED_TASKS.forEach(t => { if(t.id !== 'fruit') newKid.tasks[t.id] = 0; });
       }
 
       const newState = { ...prev, [id]: newKid };
@@ -457,11 +447,6 @@ export default function App() {
           </button>
         </div>
 
-        <div className="face-container">
-          <span className="face-emoji">{currentFace}</span>
-          <span className="level-text">{percent === 1 ? '¡SÚPER FELIZ!' : `Nivel ${faceIndex}/4`}</span>
-        </div>
-
         <div className="tasks-list">
           {COMBINED_TASKS.filter(t => settings.enabledTasks.includes(t.id)).map(task => {
             if (task.id === 'fruit') {
@@ -480,12 +465,19 @@ export default function App() {
                 </div>
               );
             }
-            const isComp = kid.tasks[task.id];
+            const taskCount = kid.tasks[task.id] || 0;
             return (
-              <button key={task.id} className={`task-button ${isComp ? 'completed' : ''}`} onClick={() => handleTaskClick(kidId, task.id)}>
-                <span className="task-check">{isComp ? '✓' : '○'}</span>
-                <span className="task-label">{task.custom ? `${task.emoji} ` : ''}{task.label}</span>
-              </button>
+              <div key={task.id} className="task-wrapper">
+                <button className={`task-button ${taskCount > 0 ? 'completed' : ''}`} onClick={() => handleTaskClick(kidId, task.id)}>
+                  <span className="task-check">{taskCount > 0 ? taskCount : '○'}</span>
+                  <span className="task-label">{task.custom ? `${task.emoji} ` : ''}{task.label}</span>
+                </button>
+                {taskCount > 0 && (
+                  <button onClick={() => handleTaskClick(kidId, task.id, true)} style={{background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', marginTop:'3px', fontSize:'0.75rem', paddingLeft:'8px'}}>
+                    - Restar 1
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -587,9 +579,23 @@ export default function App() {
                   <div key={kidId} className="settings-kid-item" style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px', background:'rgba(255,255,255,0.05)', borderRadius:'12px', marginBottom:'8px'}}>
                     <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
                       <img src={kidsState[kidId].avatar} width="40" height="40" style={{borderRadius:'50%', border:'2px solid var(--glass-border)'}} alt={kidsState[kidId].name} />
-                      <span style={{fontWeight:'700'}}>{kidsState[kidId].name}</span>
+                      <div style={{display:'flex', flexDirection:'column'}}>
+                        <span style={{fontWeight:'700'}}>{kidsState[kidId].name}</span>
+                        <span style={{fontSize:'0.75rem', color:'#FFD700', fontWeight:'600'}}>{kidsState[kidId].points} ⭐ acumuladas</span>
+                      </div>
                     </div>
                     <div style={{display:'flex', gap:'8px'}}>
+                      <button className="icon-btn" onClick={() => {
+                        if (kidsState[kidId].points > 0) {
+                          setKidsState(prev => ({
+                            ...prev,
+                            [kidId]: { ...prev[kidId], points: prev[kidId].points - 1 }
+                          }));
+                          showToast(`Se ha restado 1 ⭐ a ${kidsState[kidId].name}`, 'error', '➖');
+                        } else {
+                          showToast(`${kidsState[kidId].name} no tiene estrellas`, 'error', '0️⃣');
+                        }
+                      }} title="Restar estrella (castigo)" style={{color:'#E23636', width: 'auto', padding: '0 8px', fontWeight: 'bold'}}>-1 ⭐</button>
                       <button className="icon-btn" onClick={() => setKidEditor({ show: true, kidId, name: kidsState[kidId].name, theme: kidsState[kidId].theme, avatar: kidsState[kidId].avatar })}>✏️</button>
                       <button className="icon-btn" onClick={() => deleteKid(kidId)} style={{color:'#E23636'}}><Trash2 size={18} /></button>
                     </div>
