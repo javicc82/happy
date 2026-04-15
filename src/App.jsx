@@ -12,6 +12,11 @@ const BASE_TASKS = [
   { id: 'late', label: 'No llegar tarde', type: 'counter', icon: Clock },
 ];
 
+const FRUIT_CHALLENGE_TIPS = [
+  { id: 1, text: "¡Come un arcoíris! Cada color de fruta tiene un superpoder diferente para tu cuerpo.", emoji: "🌈" },
+  { id: 2, text: "¡Sé un explorador! Prueba una fruta que nunca hayas comido hoy. ¡Te sorprenderá!", emoji: "🕵️‍♂️" }
+];
+
 
 const INITIAL_APP_SETTINGS = {
   enabledTasks: ['fruit', 'toys', 'eat', 'dress', 'late'],
@@ -224,7 +229,7 @@ export default function App() {
     settings.enabledTasks.forEach(taskId => {
       if (taskId === 'fruit') {
         const fruitsEaten = kidTasks.fruit ? kidTasks.fruit.length : 0;
-        score += Math.min(fruitsEaten, settings.fruitGoal);
+        score += fruitsEaten;
       } else {
         score += kidTasks[taskId] || 0;
       }
@@ -269,17 +274,13 @@ export default function App() {
     const kidId = fruitSelector.kidId;
     setKidsState(prev => {
       const currentFruits = prev[kidId].tasks.fruit || [];
-      if (currentFruits.includes(fruitEmoji)) return prev;
-
       const newFruits = [...currentFruits, fruitEmoji];
-      // Solo sumamos punto si aún no hemos superado ya el objetivo diario
-      const earnedPoint = newFruits.length <= settings.fruitGoal;
 
       return {
         ...prev,
         [kidId]: {
           ...prev[kidId],
-          points: earnedPoint ? (prev[kidId].points || 0) + 1 : prev[kidId].points,
+          points: (prev[kidId].points || 0) + 1,
           tasks: { ...prev[kidId].tasks, fruit: newFruits }
         }
       };
@@ -483,7 +484,7 @@ export default function App() {
                 <div key={task.id} className="task-wrapper">
                   <button className={`task-button ${isComp ? 'completed' : ''}`} onClick={() => handleTaskClick(kidId, task.id)}>
                     <span className="task-check">{isComp ? '✓' : '○'}</span>
-                    <span className="task-label">{task.label} <small style={{ opacity: 0.6 }}>({fruits.length}/{settings.fruitGoal})</small></span>
+                    <span className="task-label">{task.label} <small style={{ opacity: 0.6 }}>({fruits.length})</small></span>
                     {fruits.length > 0 && <span className="task-fruits">{fruits.join('')}</span>}
                   </button>
                   {fruits.length > 0 && (
@@ -571,7 +572,20 @@ export default function App() {
         <div className="modal-overlay" onClick={() => setFruitSelector({ show: false, kidId: null })}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setFruitSelector({ show: false, kidId: null })}><X size={24} /></button>
-            <h2>¿Qué fruta te has comido?</h2>
+            <div className="fruit-modal-header">
+              <Apple size={32} className="fruit-icon-bounce" />
+              <h2>Reto de la Fruta</h2>
+            </div>
+            
+            <div className="tips-container">
+              {FRUIT_CHALLENGE_TIPS.map(tip => (
+                <div key={tip.id} className="tip-card">
+                  <span className="tip-emoji">{tip.emoji}</span>
+                  <p className="tip-text">{tip.text}</p>
+                </div>
+              ))}
+            </div>
+
             <div className="emoji-grid">
               {BASE_TASKS.find(t => t.id === 'fruit').options.map(emoji => (
                 <button key={emoji} className="emoji-btn" onClick={() => handleFruitSelect(emoji)}>{emoji}</button>
