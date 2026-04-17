@@ -928,6 +928,66 @@ body {
   line-height: 1;
 }
 
+/* Points Area with Quick Adjust Buttons */
+.points-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.adjust-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.adjust-btn:active {
+  transform: scale(0.9);
+}
+
+.adjust-btn.adjust-plus {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.adjust-btn.adjust-plus:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.2);
+}
+
+.adjust-btn.adjust-minus {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.adjust-btn.adjust-minus:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+@media (max-width: 767px) {
+  .adjust-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+}
+
 .coin-badge-big {
   display: flex;
   flex-direction: column;

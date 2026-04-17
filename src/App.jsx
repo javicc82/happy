@@ -463,16 +463,39 @@ export default function App() {
             <img src={kid.avatar} alt={kid.name} className="kid-avatar" />
             <div className="kid-name">{kid.name}</div>
           </div>
-          <button
-            className="coin-badge coin-badge-tappable"
-            onClick={() => setActiveShopKid(kidId)}
-            title="Canjear puntos"
-            style={{ flexShrink: 0 }}
-          >
-            <Star size={16} color="#FFD700" fill="#FFD700" />
-            <span className="coin-pts">{kid.points}</span>
-            <span className="coin-hint">Canjear</span>
-          </button>
+          <div className="points-area" style={{ flexShrink: 0 }}>
+            <button
+              className="adjust-btn adjust-minus"
+              onClick={() => {
+                if (kid.points > 0) {
+                  setKidsState(prev => ({
+                    ...prev,
+                    [kidId]: { ...prev[kidId], points: prev[kidId].points - 1 }
+                  }));
+                }
+              }}
+              title="Restar estrella"
+            >−</button>
+            <button
+              className="coin-badge coin-badge-tappable"
+              onClick={() => setActiveShopKid(kidId)}
+              title="Canjear puntos"
+            >
+              <Star size={16} color="#FFD700" fill="#FFD700" />
+              <span className="coin-pts">{kid.points}</span>
+              <span className="coin-hint">Canjear</span>
+            </button>
+            <button
+              className="adjust-btn adjust-plus"
+              onClick={() => {
+                setKidsState(prev => ({
+                  ...prev,
+                  [kidId]: { ...prev[kidId], points: (prev[kidId].points || 0) + 1 }
+                }));
+              }}
+              title="Sumar estrella"
+            >+</button>
+          </div>
         </div>
 
         <div className="tasks-list">
