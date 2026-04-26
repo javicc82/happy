@@ -79,6 +79,10 @@ export default function App() {
   // Editor de Niños
   const [kidEditor, setKidEditor] = useState({ show: false, kidId: null, name: '', theme: '', avatar: '' });
 
+  // Historial de Estrellas Restadas
+  const [deductionModal, setDeductionModal] = useState({ show: false, kidId: null, reason: '' });
+  const [historyModal, setHistoryModal] = useState({ show: false, kidId: null });
+
   // --- Toast System ---
   const showToast = (message, type = 'info', emoji = '') => {
     const id = Date.now();
@@ -109,13 +113,13 @@ export default function App() {
 
   // Bloquear scroll del body al abrir modales
   useEffect(() => {
-    const isModalOpen = fruitSelector.show || showPinModal || showSettings || activeShopKid;
+    const isModalOpen = fruitSelector.show || showPinModal || showSettings || activeShopKid || deductionModal.show || historyModal.show;
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
     }
-  }, [fruitSelector.show, showPinModal, showSettings, activeShopKid]);
+  }, [fruitSelector.show, showPinModal, showSettings, activeShopKid, deductionModal.show, historyModal.show]);
 
   // --- Sincronización Interactiva Cloudflare (Pages API + KV) ---
   const lastSyncStr = useRef("");
@@ -365,7 +369,8 @@ export default function App() {
         theme: kidEditor.theme || 'pikachu',
         avatar: kidEditor.avatar || '/avatar_pikachu.png',
         points: isNew ? 0 : prev[id].points,
-        tasks: isNew ? { fruit: [] } : prev[id].tasks
+        tasks: isNew ? { fruit: [] } : prev[id].tasks,
+        deductions: isNew ? [] : (prev[id].deductions || [])
       };
 
       if (isNew) {
@@ -468,10 +473,9 @@ export default function App() {
               className="adjust-btn adjust-minus"
               onClick={() => {
                 if (kid.points > 0) {
-                  setKidsState(prev => ({
-                    ...prev,
-                    [kidId]: { ...prev[kidId], points: prev[kidId].points - 1 }
-                  }));
+                  setDeductionModal({ show: true, kidId: kidId, reason: '' });
+                } else {
+                  showToast(`${kid.name} no tiene estrellas para restar`, 'error');
                 }
               }}
               title="Restar estrella"
@@ -655,13 +659,12 @@ export default function App() {
                       </div>
                     </div>
                     <div className="kid-actions-row">
+                      <button className="icon-btn-cir" onClick={() => setHistoryModal({ show: true, kidId })} title="Ver historial">
+                        <Clock size={16} />
+                      </button>
                       <button className="action-btn-sub" onClick={() => {
                         if (kidsState[kidId].points > 0) {
-                          setKidsState(prev => ({
-                            ...prev,
-                            [kidId]: { ...prev[kidId], points: prev[kidId].points - 1 }
-                          }));
-                          showToast(`Se ha restado 1 ⭐ a ${kidsState[kidId].name}`, 'error', '➖');
+                          setDeductionModal({ show: true, kidId: kidId, reason: '' });
                         } else {
                           showToast(`${kidsState[kidId].name} no tiene estrellas`, 'error', '0️⃣');
                         }
@@ -735,6 +738,79 @@ export default function App() {
             </div>
 
             <button className="base-btn" onClick={saveKidProfile} style={{ width: '100%', marginTop: '25px' }}>Guardar Cambios</button>
+          </div>
+        </div>
+      )}
+
+      {/* Historial de Restas */}
+      {historyModal.show && (
+        <div className="modal-overlay scrollable-modal" style={{ zIndex: 2600 }} onClick={() => setHistoryModal({ show: false, kidId: null })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <button className="modal-close" onClick={() => setHistoryModal({ show: false, kidId: null })}><X size={24} /></button>
+            <h2 style={{ marginBottom: '5px' }}>Historial de Estrellas</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '20px' }}>Motivos de pérdida de estrellas de {kidsState[historyModal.kidId]?.name}</p>
+            
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '5px' }}>
+              {(!kidsState[historyModal.kidId]?.deductions || kidsState[historyModal.kidId].deductions.length === 0) ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px 0' }}>No hay estrellas restadas recientemente. ¡Qué bien! 🎉</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {kidsState[historyModal.kidId].deductions.map(deduction => (
+                    <div key={deduction.timestamp} style={{ background: 'rgba(255,255,255,0.05)', padding: '12px 15px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ paddingRight: '15px' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '500', marginBottom: '4px', lineHeight: '1.3' }}>{deduction.reason}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {new Date(deduction.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                      <span style={{ color: '#E23636', fontWeight: 'bold', flexShrink: 0, fontSize: '1.1rem' }}>-1 ⭐</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Motivo de Resta Modal */}
+      {deductionModal.show && (
+        <div className="modal-overlay" style={{ zIndex: 2700 }} onClick={() => setDeductionModal({ show: false, kidId: null, reason: '' })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '350px' }}>
+            <button className="modal-close" onClick={() => setDeductionModal({ show: false, kidId: null, reason: '' })}><X size={24} /></button>
+            <h2>Restar Estrella</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '10px', lineHeight: '1.4' }}>
+              ¿Por qué le quitas una estrella a <strong>{kidsState[deductionModal.kidId]?.name}</strong>?
+            </p>
+            <input 
+              value={deductionModal.reason} 
+              onChange={e => setDeductionModal({ ...deductionModal, reason: e.target.value })} 
+              className="base-input" 
+              placeholder="Ej. Pegar al hermano, no recoger..." 
+              style={{ marginTop: '15px' }}
+              autoFocus 
+            />
+            <button className="base-btn" style={{ width: '100%', marginTop: '20px', background: '#E23636' }} onClick={() => {
+              if (!deductionModal.reason.trim()) {
+                showToast('Debes indicar un motivo', 'error');
+                return;
+              }
+              setKidsState(prev => {
+                const kid = prev[deductionModal.kidId];
+                return {
+                  ...prev,
+                  [deductionModal.kidId]: { 
+                    ...kid, 
+                    points: kid.points - 1,
+                    deductions: [{ timestamp: Date.now(), reason: deductionModal.reason.trim() }, ...(kid.deductions || [])]
+                  }
+                };
+              });
+              showToast(`Se ha restado 1 ⭐ a ${kidsState[deductionModal.kidId].name}`, 'error', '➖');
+              setDeductionModal({ show: false, kidId: null, reason: '' });
+            }}>
+              Confirmar y Restar
+            </button>
           </div>
         </div>
       )}
